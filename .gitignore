@@ -8,3 +8,7 @@ __pycache__/
 /normlayers/
 
 /output*/
+
+/original/
+/encoded/
+/decoded/

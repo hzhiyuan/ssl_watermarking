@@ -170,7 +170,7 @@ def watermark_multibit(img_loader, msgs, carrier, model, transform, params):
             scheduler = build_lr_scheduler(optimizer=optimizer, **utils.parse_params(params.scheduler))
 
         # optimization
-        for iteration in range(params.epochs):
+        for iteration in tqdm(range(params.epochs)):
             # Constraints and data augmentations
             batch = []
             for ii, x in enumerate(batch_imgs):
