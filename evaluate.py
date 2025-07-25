@@ -135,7 +135,7 @@ def evaluate_0bit_on_attacks(imgs, carrier, angle, model, params, attacks=attack
     return df
 
 
-def decode_multibit_from_folder(img_dir, carrier, model, msg_type):
+def decode_multibit_from_folder(img_dir, carrier, model, msg_type, redundancy_rate, is_base64):
     """
     Args:
         img_dir: Folder containing the images to decode
@@ -155,7 +155,7 @@ def decode_multibit_from_folder(img_dir, carrier, model, msg_type):
     )
     if msg_type == 'text':
         df['msg'] = df['msg'].apply(
-            lambda x: utils.binary_to_string(x)
+            lambda x: utils.binary_to_string(x, redundancy_rate, is_base64)
         )
     return df
 

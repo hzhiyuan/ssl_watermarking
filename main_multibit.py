@@ -38,6 +38,8 @@ def get_parser():
     aa("--msg_type", type=str, default='bit', choices=['text', 'bit'], help="Type of message (Default: bit)")
     aa("--msg_path", type=str, default=None, help="Path to the messages text file (Default: None)")
     aa("--num_bits", type=int, default=30, help="Number of bits of the message. (Default: None)")
+    aa("--redundancy_rate", type=int, default=1, help="Redundancy rate of the binary message. (Default: 1)")
+    aa("--is_base64", type=utils.bool_inst, default=True, help="Whether the message is base64 encoded. (Default: True)")
 
     group = parser.add_argument_group('Marking parameters')
     aa("--target_psnr", type=float, default=42.0, help="Target PSNR value in dB. (Default: 42 dB)")
@@ -108,7 +110,7 @@ def main(params):
             print('>>> Decoding watermarks...')
         if not os.path.exists(params.output_dir):
             os.makedirs(params.output_dir, exist_ok=True)
-        df = evaluate.decode_multibit_from_folder(params.data_dir, carrier, model, params.msg_type)
+        df = evaluate.decode_multibit_from_folder(params.data_dir, carrier, model, params.msg_type, params.redundancy_rate, params.is_base64)
         df_path = os.path.join(params.output_dir,'decodings.csv')
         df.to_csv(df_path, index=False)
         if params.verbose > 0:

@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+import base64
 import numpy as np
 import torch
 import torch.nn as nn
@@ -147,13 +148,36 @@ def generate_messages(n, k):
     """
     return torch.rand((n,k))>0.5
 
-def string_to_binary(st):
+def string_to_binary(st, redundancy_rate=False, is_base64=False):
     """ String to binary """
-    return ''.join(format(ord(i), '08b') for i in st)
+    # return ''.join(format(ord(i), '08b') for i in st)
+    if not is_base64:
+        msg = ''.join(format(ord(i), '08b') for i in st)
+    else:
+        st = base64.b64decode(st.encode('utf-8'))
+        msg = ''.join(format(byte, '08b') for byte in st)
+    msg_b = []
+    for i in msg:
+        msg_b.extend([i] * redundancy_rate)
+    print(msg_b)
+    return ''.join(msg_b)
 
-def binary_to_string(bi):
+def binary_to_string(bi, redundancy_rate=False, is_base64=False):
     """ Binary to string """
-    return ''.join(chr(int(byte,2)) for byte in [bi[ii:ii+8] for ii in range(0,len(bi),8)] )
+    # return ''.join(chr(int(byte,2)) for byte in [bi[ii:ii+8] for ii in range(0,len(bi),8)] )
+    bi_rec = []
+    for i in range(len(bi)//redundancy_rate):
+        tmp = [int(bit, 2) for bit in bi[i * redundancy_rate: (i + 1) * redundancy_rate]]
+        bi_rec.append(str(int(sum(tmp) > 0.5 * redundancy_rate)))
+    bi = ''.join(bi_rec)
+    if not is_base64:
+        return ''.join(chr(int(byte,2)) for byte in [bi[ii:ii+8] for ii in range(0,len(bi),8)] )
+    else:
+        byte_stream = b''
+        for ii in range(0,len(bi),8):
+            for byte in [bi[ii:ii+8]]:
+                byte_stream += int(byte,2).to_bytes(1, byteorder='big')
+        return base64.b64encode(byte_stream).decode('utf-8')
 
 def get_num_bits(path, msg_type):
     """ Get the number of bits of the watermark from the text file """ 

@@ -11,6 +11,7 @@ import base64
 import uuid
 import numpy as np
 import torch
+import random
 from torchvision.transforms import ToPILImage
 
 import data_augmentation
@@ -41,7 +42,9 @@ def get_parser():
     aa("--msg_path", type=str, default=None, help="Path to the messages text file (Default: None)")
     aa("--num_bits", type=int, default=None, help="Number of bits of the message. (Default: None)")
     aa("--dimentions", type=int, default=None, help="Number of dimensions of the latent space. (Default: None)")
-
+    aa("--redundancy_rate", type=int, default=3, help="Redundancy rate of the binary message. (Default: 1)")
+    aa("--is_base64", type=utils.bool_inst, default=True, help="Whether the message is base64 encoded. (Default: True)")
+    
     group = parser.add_argument_group('Marking parameters')
     aa("--target_psnr", type=float, default=42.0, help="Target PSNR value in dB. (Default: 42 dB)")
     aa("--target_fpr", type=float, default=1e-6, help="Target FPR of the dectector. (Default: 1e-6)")
@@ -125,8 +128,11 @@ def save_img(img_root, img_base64, params):
     else:
         params.output_dir = osp.join('data/decoded', req_id)
 
-def decode_image(model, params, image, num_bits):
+def decode_image(model, params, image, num_bits, redundancy_rate, is_base64):
     params.num_bits = num_bits
+    params.redundancy_rate = redundancy_rate
+    params.is_base64 = is_base64
+
     # 存图
     save_img('data/decoded', image, params)
     carrier = load_carrier(params)
@@ -134,7 +140,7 @@ def decode_image(model, params, image, num_bits):
     if params.verbose > 0:
         print('>>> Decoding watermarks...')
 
-    df = evaluate.decode_multibit_from_folder(params.data_dir, carrier, model, params.msg_type)
+    df = evaluate.decode_multibit_from_folder(params.data_dir, carrier, model, params.msg_type, params.redundancy_rate, params.is_base64)
     df_path = os.path.join(params.output_dir,'decodings.csv')
     df.to_csv(df_path, index=False)
     if params.verbose > 0:
@@ -143,11 +149,21 @@ def decode_image(model, params, image, num_bits):
     decoded_text = df.iloc[0]['msg']
     return decoded_text
 
-def encode_image(model, params, image, text):
+def encode_image(model, params, image, text, redundancy_rate, is_base64):
+    params.redundancy_rate = redundancy_rate
+    params.is_base64 = is_base64
+    params.num_bits = 8 * len(text) * params.redundancy_rate
+    text_new = None
+    if params.is_base64:
+        if len(text) % 4 != 0:
+            res = ''.join(random.choices([_ for _ in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'], k = 4 - len(text) % 4))
+            text = text + res
+            text_new = text
+            params.num_bits = 8 * len(text) * params.redundancy_rate
+        params.num_bits = params.num_bits // 4 * 3\
+    
     # 存图
     save_img('data/original', image, params)
-
-    params.num_bits = 8 * len(text)
     carrier = load_carrier(params)
 
     # Load images
@@ -159,8 +175,10 @@ def encode_image(model, params, image, text):
     if params.verbose > 0:
         print('>>> Loading messages...')
     # msgs = utils.load_messages(params.msg_path, params.msg_type, len(dataloader.dataset))
-    msgs = [[int(i)==1 for i in utils.string_to_binary(text)]]
-    msgs = torch.tensor(msgs[:1])
+    msg = utils.string_to_binary(text, params.redundancy_rate, params.is_base64)
+    msgs = [[int(i)==1 for i in msg]]
+
+    msgs = torch.tensor(msgs)
 
     # Construct data augmentation
     data_aug = data_augmentation.All()
@@ -178,4 +196,4 @@ def encode_image(model, params, image, text):
 
     img_out_byte = open(osp.join(imgs_dir, '0_out.png'), 'rb').read()
     img_out_base64 = base64.b64encode(img_out_byte).decode('utf-8')
-    return img_out_base64
+    return img_out_base64, text_new
