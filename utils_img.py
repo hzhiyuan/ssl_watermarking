@@ -166,7 +166,7 @@ def pil_imgs_from_folder(folder):
     filenames = []
     for filename in os.listdir(folder):
         try:
-            img = Image.open(os.path.join(folder,filename))
+            img = Image.open(os.path.join(folder,filename)).convert('RGB')
             if img is not None:
                 filenames.append(filename)
                 images.append(img)

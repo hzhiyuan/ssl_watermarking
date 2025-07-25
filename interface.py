@@ -109,7 +109,7 @@ def load_carrier(params):
 
 def save_img(img_root, img_base64, params):
     req_id = str(uuid.uuid4())
-    if img_root == 'original':
+    if img_root == 'data/original':
         img_dir = osp.join(img_root, req_id, '0')
     else:
         img_dir = osp.join(img_root, req_id)
@@ -119,16 +119,16 @@ def save_img(img_root, img_base64, params):
     img_byte = base64.b64decode(img_base64.encode('utf-8'))
     open(osp.join(img_dir, f'image.jpg'), 'wb').write(img_byte)
 
-    if img_root == 'original':
-        params.output_dir = osp.join('encoded', req_id)
+    if img_root == 'data/original':
+        params.output_dir = osp.join('data/encoded', req_id)
         os.makedirs(osp.join(params.output_dir, 'imgs'), exist_ok=False)
     else:
-        params.output_dir = osp.join('decoded', req_id)
+        params.output_dir = osp.join('data/decoded', req_id)
 
 def decode_image(model, params, image, num_bits):
     params.num_bits = num_bits
     # 存图
-    save_img('decoded', image, params)
+    save_img('data/decoded', image, params)
     carrier = load_carrier(params)
 
     if params.verbose > 0:
@@ -145,7 +145,7 @@ def decode_image(model, params, image, num_bits):
 
 def encode_image(model, params, image, text):
     # 存图
-    save_img('original', image, params)
+    save_img('data/original', image, params)
 
     params.num_bits = 8 * len(text)
     carrier = load_carrier(params)
@@ -170,19 +170,6 @@ def encode_image(model, params, image, text):
         print('>>> Marking images...')
     pt_imgs_out = encode.watermark_multibit(dataloader, msgs, carrier, model, data_aug, params)
     imgs_out = [ToPILImage()(utils_img.unnormalize_img(pt_img).squeeze(0)) for pt_img in pt_imgs_out] 
-
-    # Evaluate
-    if params.evaluate:
-        if params.verbose > 0:
-            print('>>> Evaluating watermarks...')
-        df = evaluate.evaluate_multibit_on_attacks(imgs_out, carrier, model, msgs, params)
-        df_agg = evaluate.aggregate_df(df, params)
-        df_path = os.path.join(params.output_dir,'df.csv')
-        df_agg_path = os.path.join(params.output_dir,'df_agg.csv')
-        df.to_csv(df_path, index=False)
-        df_agg.to_csv(df_agg_path)
-        if params.verbose > 0:
-            print('Results saved in %s'%df_path)
     
     imgs_dir = os.path.join(params.output_dir, 'imgs')
     if params.verbose > 0:
