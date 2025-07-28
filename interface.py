@@ -128,7 +128,7 @@ def save_img(img_root, img_base64, params):
     else:
         params.output_dir = osp.join('data/decoded', req_id)
 
-def decode_image(model, params, image, num_bits, redundancy_rate, is_base64):
+def decode_image(model, params, image, num_bits, redundancy_rate=3, is_base64=False):
     params.num_bits = num_bits
     params.redundancy_rate = redundancy_rate
     params.is_base64 = is_base64
@@ -149,7 +149,7 @@ def decode_image(model, params, image, num_bits, redundancy_rate, is_base64):
     decoded_text = df.iloc[0]['msg']
     return decoded_text
 
-def encode_image(model, params, image, text, redundancy_rate, is_base64):
+def encode_image(model, params, image, text, redundancy_rate=3, is_base64=False):
     params.redundancy_rate = redundancy_rate
     params.is_base64 = is_base64
     params.num_bits = 8 * len(text) * params.redundancy_rate
@@ -160,7 +160,7 @@ def encode_image(model, params, image, text, redundancy_rate, is_base64):
             text = text + res
             text_new = text
             params.num_bits = 8 * len(text) * params.redundancy_rate
-        params.num_bits = params.num_bits // 4 * 3\
+        params.num_bits = params.num_bits // 4 * 3
     
     # 存图
     save_img('data/original', image, params)

@@ -159,7 +159,6 @@ def string_to_binary(st, redundancy_rate=False, is_base64=False):
     msg_b = []
     for i in msg:
         msg_b.extend([i] * redundancy_rate)
-    print(msg_b)
     return ''.join(msg_b)
 
 def binary_to_string(bi, redundancy_rate=False, is_base64=False):
